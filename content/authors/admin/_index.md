@@ -1,77 +1,88 @@
 ---
-# Display name
-title: Nelson Bighetti
-
-# Is this the primary user of the site?
-superuser: true
-
-# Role/position/tagline
-role: Professor of Artificial Intelligence
-
-# Organizations/Affiliations to show in About widget
-organizations:
-  - name: Stanford University
-    url: https://www.stanford.edu/
-
-# Short bio (displayed in user profile at end of posts)
-bio: My research interests include distributed robotics, mobile computing and programmable matter.
-
-# Interests to show in About widget
-interests:
-  - Artificial Intelligence
-  - Computational Linguistics
-  - Information Retrieval
-
-# Education to show in About widget
+authors:
+- Lino Galiana
+bio: I am data scientist in French national statistical institute, [Insee](https://www.insee.fr/fr/accueil). I study how emerging data or new computational methods help to renew the production of statistical knowledge. 
 education:
   courses:
-    - course: PhD in Artificial Intelligence
-      institution: Stanford University
-      year: 2012
-    - course: MEng in Artificial Intelligence
-      institution: Massachusetts Institute of Technology
-      year: 2009
-    - course: BSc in Artificial Intelligence
-      institution: Massachusetts Institute of Technology
-      year: 2008
-
-# Social/Academic Networking
-# For available icons, see: https://wowchemy.com/docs/getting-started/page-builder/#icons
-#   For an email link, use "fas" icon pack, "envelope" icon, and a link in the
-#   form "mailto:your-email@example.com" or "/#contact" for contact widget.
+  - course: Msc Statistics and Data Science
+    institution: ENSAE
+    year: 2017
+  - course: Msc Econometrics
+    institution: ENS Lyon & Paris School of Economics
+    year: 2013-2018
+  - course: Msc Applied Mathematics
+    institution: Université Pierre et Marie Curie (Jussieu), Paris VI
+    year: 2015-2017
+email: "lino.galiana@insee.fr"
+interests:
+- Big data
+- Statistics
+- Machine Learning
+- NLP
+- Econometrics
+name: Lino Galiana
+organizations:
+- name: INSEE
+  url: "https://www.insee.fr/fr/accueil"
+role: Data Scientist
 social:
-  - icon: envelope
-    icon_pack: fas
-    link: '/#contact'
-  - icon: twitter
-    icon_pack: fab
-    link: https://twitter.com/GeorgeCushen
-  - icon: graduation-cap # Alternatively, use `google-scholar` icon from `ai` icon pack
-    icon_pack: fas
-    link: https://scholar.google.co.uk/citations?user=sIwtMXoAAAAJ
-  - icon: github
-    icon_pack: fab
-    link: https://github.com/gcushen
-  - icon: linkedin
-    icon_pack: fab
-    link: https://www.linkedin.com/
-
-# Link to a PDF of your resume/CV.
-# To use: copy your resume to `static/uploads/resume.pdf`, enable `ai` icons in `params.toml`,
-# and uncomment the lines below.
-# - icon: cv
-#   icon_pack: ai
-#   link: uploads/resume.pdf
-
-# Enter email to display Gravatar (if Gravatar enabled in Config)
-email: ''
-
-# Highlight the author in author lists? (true/false)
-highlight_name: true
+- icon: envelope
+  icon_pack: fas
+  link: 'mailto:lino.galiana@insee.fr'
+- icon: twitter
+  icon_pack: fab
+  link: https://twitter.com/linogaliana
+- icon: google-scholar
+  icon_pack: ai
+- icon: linkedin
+  icon_pack: fab
+  link: https://www.linkedin.com/in/linogaliana/
+- icon: cv
+  icon_pack: ai
+  link: /doc/CV.pdf
+- icon: github
+  icon_pack: fab
+  link: https://github.com/linogaliana
+- icon: gitlab
+  icon_pack: fab
+  link: https://gitlab.com/linogaliana
+- icon: stack-overflow
+  icon_pack: fab
+  link: https://stackoverflow.com/users/9197726/linog?tab=profile
+- icon: r-project
+  icon_pack: fab
+  link: https://www.r-bloggers.com/
+superuser: true
+user_groups:
+- Researchers
+- Visitors
 ---
 
-Nelson Bighetti is a professor of artificial intelligence at the Stanford AI Lab. His research interests include distributed robotics, mobile computing and programmable matter. He leads the Robotic Neurobiology group, which develops self-reconfiguring robots, systems of self-organizing robots, and mobile sensor networks.
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed neque elit, tristique placerat feugiat ac, facilisis vitae arcu. Proin eget egestas augue. Praesent ut sem nec arcu pellentesque aliquet. Duis dapibus diam vel metus tempus vulputate.
+I am data scientist 
+at the French national statistical institute, [Insee](https://www.insee.fr/fr/accueil).
+I study how emerging data or new computational methods help to renew
+the production of statistical knowledge. 
 
-{{< icon name="download" pack="fas" >}} Download my {{< staticref "uploads/demo_resume.pdf" "newtab" >}}resumé{{< /staticref >}}.
+I mostly work with `Python` <i class="fab fa-python"></i> 
+and <i class="fab fa-r-project"></i>. I sometimes use `C++` to improve performance
+or `Spark` for big data analysis.
+I am a huge `Git` <i class="fas fa-code-branch"></i> fan.
+I also like a lot 
+the possibilities offered by state-of-the-art _data-science_ tools to
+reduce the cost of exploring new datasets or new questions.
+
+Most of my work is available on my <a href="https://github.com/linogaliana" class="github"><i class="fab fa-github"></i></a> [Github page](https://github.com/linogaliana) or
+the <a href="https://github.com/inseefrlab" class="github"><i class="fab fa-github"></i></a> [Github page](https://github.com/inseefrlab)
+of the Insee's Lab. 
+I maintain the [`utilitR` project](https://www.utilitr.org/) which is a collective effort involving many people from French administration to propose a high-quality documentation regarding <i class="fab fa-r-project"></i> software.
+
+I currently teach *Python for Data Scientists* at ENSAE Paris Tech,
+one of the top French engineering school.
+You can find the [course website here](https://pythonds.linogaliana.fr/) and the
+underlying [Github repository](https://github.com/linogaliana/python-datascientist) <a href="https://github.com/linogaliana/python-datascientist" class="github"><i class="fab fa-github"></i></a>. 
+I also teach a course [_"Reproductibility and good practices in data science projets"_](https://ensae-reproductibilite.netlify.app/),
+([Github repository](https://github.com/linogaliana/ensae-reproductibilite-website) <a href="https://github.com/linogaliana/ensae-reproductibilite-website" class="github"><i class="fab fa-github"></i></a>)
+that brings student to the question of MLops.
+I used to teach urban economics at [Sciences Po Paris](https://www.sciencespo.fr/en/) and 
+macroeconomics for candidates to the Insee exam. See [Teaching](teaching) section for more details.

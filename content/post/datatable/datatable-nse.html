@@ -1,0 +1,352 @@
+---
+title: "Variable name in functions, it's easy with datatable"
+author: ~
+date: "2020-03-28"
+slug: datatable-nse
+categories: ["R", "datatable"]
+tags: ["R", "datatable"]
+image:
+  caption: Variable names in datatable, it's easy
+  focal_point: Smart
+draft: no
+output:
+  html_document:
+    keep_md: yes
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<p>I recently gave my opinion concerning the <a href="https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly">never-ending debate</a> between <code>{dplyr}</code> and <code>{data.table}</code> fans (<a href="https://gitlab.com/linogaliana/documentationR/-/issues/9">here</a>). I listed three arguments in favor of <code>{data.table}</code> approach :</p>
+<ol style="list-style-type: decimal">
+<li><code>{data.table}</code> is very stable while <code>{dplyr}</code> changes a lot. This makes processes depending on <code>{dplyr}</code> more likely to break.</li>
+<li><code>{data.table}</code> is really fast and is not very demanding in terms of RAM. This is, of course, the main arguments in favor of <code>{data.table}</code>.</li>
+<li><code>{data.table}</code> grammar is often considered harder to learn than <code>{dplyr}</code> equivalent verbs. That’s not necessarily true.</li>
+</ol>
+<p>Regarding the first point, I think it is worth mentionning that a <code>Docker</code> based infrastructure where version changes can be tested should reduce the risk.</p>
+<p>The second point is clearly in favor of <code>{data.table}</code>. Hadley Wickham acknowledges for that :</p>
+<blockquote>
+<p><strong>Memory and performance</strong></p>
+</blockquote>
+<blockquote>
+<p>I’ve lumped these together, because, to me, they’re not that important. Most R users work with well under 1 million rows of data, and dplyr is sufficiently fast enough for that size of data that you’re not aware of processing time. We optimise dplyr for expressiveness on medium data; feel free to use data.table for raw speed on bigger data.</p>
+<p>Hadley Wickham (<a href="https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly/27840349#27840349">lien</a>)</p>
+</blockquote>
+<p>There exists many benchmark concerning <code>{data.table}</code>. I won’t go further on that point.</p>
+<p>The third point deserves some development. It is often said that <code>{data.table}</code> syntax is not user-friendly. However, once you get the logic of the syntax, you see that it is very powerful !</p>
+<p>There is one point where <code>{dplyr}</code> logic is really really hard to follow: when you want to use standard evaluation. Have you ever tried to understand the <a href="https://cran.r-project.org/web/packages/dplyr/vignettes/programming.html">dplyr vignette</a> on the subject ? For some operations you need <code>!!</code>, for others <code>!!!</code>, not forgetting about <code>:=</code> and <code>rlang::sym</code> otherwise it won’t work… In <code>{data.table}</code>, this is very easy: <code>get</code> makes quite well the job !</p>
+<p>I think it is worth developing a little bit on the subject because for people that create packages (if you don’t you should!), this is fundamental. Have you ever tried to use a function that takes a variable name as parameter ? For instance,</p>
+<pre class="r"><code>do_something &lt;- function(data, xvar = &quot;x&quot;, group_vars = c(&quot;a&quot;,&quot;b&quot;)){
+  #do something by group
+}</code></pre>
+<p>If yes, you might have been through hell if you used <code>{dplyr}</code> :imp:. I think it is a very common operation when you don’t want to repeat yourself to create that kind of function. But it is very painful with <code>{dplyr}</code> and very easy with <code>{data.table}</code>. If you are not interested on <code>{dplyr}</code>, you can jump to the <a href="#datatable">final Section</a>.</p>
+<p>:bulb: If you want the executive summary of the following, you can look at the tables below.</p>
+<ul>
+<li>With <code>{data.table}</code></li>
+</ul>
+<table>
+<colgroup>
+<col width="30%" />
+<col width="30%" />
+<col width="38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Operation</th>
+<th>Standard Evaluation (SE)</th>
+<th>Non Standard Evaluation (NSE)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Filter</td>
+<td><code>df[x&lt;10]</code></td>
+<td><code>df[get('x')&lt;10]</code></td>
+</tr>
+<tr class="even">
+<td>Subset columns</td>
+<td><code>df[,x]</code></td>
+<td><code>df[,.SD,.SDcols = "x"]</code></td>
+</tr>
+<tr class="odd">
+<td>Create a new column from another one</td>
+<td><code>df[, xnew := x+1]</code></td>
+<td><code>df[, c("xnew") := get("x")+1]</code></td>
+</tr>
+<tr class="even">
+<td>Create new columns using average with several grouping variables</td>
+<td></td>
+<td><code>df[, newcolnames := lapply(.SD, mean), by = grouping_var, .SDcols = xvars]</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>With <code>{dplyr}</code></li>
+</ul>
+<table>
+<colgroup>
+<col width="29%" />
+<col width="30%" />
+<col width="39%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Operation</th>
+<th>Standard Evaluation (SE)</th>
+<th>Non Standard Evaluation (NSE)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Filter</td>
+<td><code>df %&gt;% dplyr::filter(x &lt; 10)</code></td>
+<td><code>df %&gt;% dplyr::filter(!!rlang::sym("x")&lt;10)</code></td>
+</tr>
+<tr class="even">
+<td>Subset columns</td>
+<td><code>df %&gt;% dplyr::select(x)</code></td>
+<td><code>df %&gt;% dplyr::select("x")</code></td>
+</tr>
+<tr class="odd">
+<td>Create a new column from another one</td>
+<td><code>df %&gt;% dplyr::mutate(xnew = x+1)</code></td>
+<td><code>df %&gt;% dplyr::mutate(xnew = !!rlang::sym(x)+1)</code></td>
+</tr>
+<tr class="even">
+<td>Create a new column using average with several grouping variables</td>
+<td></td>
+<td><code>df %&gt;% dplyr::group_by(!!!rlang::syms(grouping_var)) %&gt;% dplyr::mutate("x" := mean(!!rlang::sym(xvar)))</code></td>
+</tr>
+</tbody>
+</table>
+<div id="NSE" class="section level1">
+<h1>Non standard evaluation: what are we talking about ?</h1>
+<p>In <code>R</code>, there exists two ways to refer to an object:</p>
+<ul>
+<li><strong>Standard evaluation</strong> (<strong>SE</strong>): find a value behind a name. <code>R</code> starts from <code>.GlobalEnv</code> and goes down along the series of namespaces in the <code>searchpaths()</code> as long as it does not find a value that matches the name. If <code>R</code> does not find an object, it throws an error ;</li>
+<li><strong>Non standard evaluation</strong> (<strong>NSE</strong>): <code>R</code> does not respect that rule because it does not start searching in the global environment. Evaluation uses an implicit context to match a value behind a name.</li>
+</ul>
+<!----
+In the context of NSE, the object `x` is interpreted as belonging to a specific environment (for instance a dataframe). Only if the object is not found in this environment, `R` will start from the global environment. 
+---->
+<p><code>{data.table}</code> and <code>{dplyr}</code> are both based on non standard evaluation. Variable names are quoted as <code>dt[,x]</code> (<code>{data.table}</code>) or <code>df %&gt;% mutate(x)</code> (<code>{dplyr}</code>): <code>x</code> does not exist in the global environment, only within the dataframe.</p>
+<p>This example (<a href="https://thinkr.fr/tidyeval/">borrowed from ThinkR</a>) is maybe more explicit</p>
+<pre class="r"><code>iris %&gt;% dplyr::filter(Species == &quot;setosa&quot;)</code></pre>
+<p>The <code>Species</code> symbol is not related to anything when thinking about standard evaluation. No <code>Species</code> symbol is associated with a value in the global environment. Here, <code>Species</code> must be evaluated in the context of the dataframe <code>iris</code>. Base <code>R</code> would not allow such shortcut because you would need to write <code>iris$Species</code>:</p>
+<pre class="r"><code>iris[iris$Species == &quot;setosa&quot;, ]</code></pre>
+<p>As <code>{dplyr}</code>, <code>{data.table}</code> works well with NSE. In <code>{data.table}</code>, you would write:</p>
+<pre class="r"><code>data.table::as.data.table(iris)[Species == &quot;setosa&quot;]</code></pre>
+<p><strong>NSE must be avoided when you start to use functions or share programs.</strong> Objects in another users environment do not necessarily match yours. And, as you might see with some examples, using string names for variables in argument can lead to very general and very powerful functions.</p>
+<p>Regarding the question of environments, the following two commands will not return the same result :rage: since there is an ambiguity regarding <code>Species</code>: are we talking about the variable or the object ?</p>
+<pre class="r"><code>nrow(
+  data.table::as.data.table(iris)[Species == &quot;setosa&quot;]
+)</code></pre>
+<pre><code>## [1] 50</code></pre>
+<pre class="r"><code>Species &lt;- &quot;setosa&quot;
+nrow(
+  data.table::as.data.table(iris)[Species == Species]
+)</code></pre>
+<pre><code>## [1] 150</code></pre>
+</div>
+<div id="dplyr" class="section level1">
+<h1>The <code>{dplyr}</code> approach</h1>
+<blockquote>
+<p>:bulb: People allergic to <code>{dplyr}</code> can jump to to the <a href="#datatable">final Section</a>.</p>
+</blockquote>
+<p>With <code>{dplyr}</code>, you must use the tools provided by <code>{rlang}</code> to be able to use SE. In the past, it was possible to use functions annoted with <code>*_</code> (e.g. <code>group_by_</code>) but they are now deprecated.</p>
+<p>First, let’s use import <code>{magrittr}</code> to get the <code>%&gt;%</code> available. We won’t need to import <code>{dplyr}</code>, <code>{data.table}</code> or any other package.</p>
+<pre class="r"><code>library(&quot;magrittr&quot;)</code></pre>
+<p>First, there is a situation where SE is easy to use in <code>{dplyr}</code>: in <code>select</code> operations</p>
+<pre class="r"><code>mtcars %&gt;% dplyr::select(c(&quot;mpg&quot;,&quot;cyl&quot;)) %&gt;% head()</code></pre>
+<pre><code>##                    mpg cyl
+## Mazda RX4         21.0   6
+## Mazda RX4 Wag     21.0   6
+## Datsun 710        22.8   4
+## Hornet 4 Drive    21.4   6
+## Hornet Sportabout 18.7   8
+## Valiant           18.1   6</code></pre>
+<p>Difficulties arise when you want to use a variable name in <code>mutate</code> or <code>group_by</code>. If you don’t unquote the name, you will just write the name everywhere :sob: :</p>
+<pre class="r"><code>xvar &lt;- &quot;mpg&quot;
+mtcars %&gt;% dplyr::mutate(&quot;x&quot; := xvar) %&gt;% head()</code></pre>
+<pre><code>##    mpg cyl disp  hp drat    wt  qsec vs am gear carb   x
+## 1 21.0   6  160 110 3.90 2.620 16.46  0  1    4    4 mpg
+## 2 21.0   6  160 110 3.90 2.875 17.02  0  1    4    4 mpg
+## 3 22.8   4  108  93 3.85 2.320 18.61  1  1    4    1 mpg
+## 4 21.4   6  258 110 3.08 3.215 19.44  1  0    3    1 mpg
+## 5 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2 mpg
+## 6 18.1   6  225 105 2.76 3.460 20.22  1  0    3    1 mpg</code></pre>
+<p>So you will need to do the following:</p>
+<ol style="list-style-type: decimal">
+<li><code>rlang::sym</code> (or <code>rlang::syms</code> if you have several variables)</li>
+<li>Apply the double bang <code>!!</code> operation (triple bang <code>!!!</code> with several)</li>
+</ol>
+<pre class="r"><code>new_variable &lt;- function(data, xvar = &quot;mpg&quot;){
+  data %&gt;% dplyr::mutate(&quot;x&quot; := !!rlang::sym(xvar))
+}
+new_variable(mtcars) %&gt;% head()</code></pre>
+<pre><code>##    mpg cyl disp  hp drat    wt  qsec vs am gear carb    x
+## 1 21.0   6  160 110 3.90 2.620 16.46  0  1    4    4 21.0
+## 2 21.0   6  160 110 3.90 2.875 17.02  0  1    4    4 21.0
+## 3 22.8   4  108  93 3.85 2.320 18.61  1  1    4    1 22.8
+## 4 21.4   6  258 110 3.08 3.215 19.44  1  0    3    1 21.4
+## 5 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2 18.7
+## 6 18.1   6  225 105 2.76 3.460 20.22  1  0    3    1 18.1</code></pre>
+<p>The <a href="https://cran.r-project.org/web/packages/dplyr/vignettes/programming.html">dplyr vignette</a> is even more obscure :dizzy_face:.</p>
+<p>The situation is getting worse when you want to use grouping variables :sweat_smile:. For instance, if you create a new variable by computing mean values by group, you will end up with this complicated piece of code:</p>
+<pre class="r"><code>new_variable_group &lt;- function(data, grouping_var = c(&quot;cyl&quot;,&quot;vs&quot;), xvar = &quot;mpg&quot;){
+  data %&gt;%
+    dplyr::group_by(!!!rlang::syms(grouping_var)) %&gt;%
+    dplyr::mutate(&quot;x&quot; := mean(!!rlang::sym(xvar)))
+}
+new_variable_group(mtcars) %&gt;% head()</code></pre>
+<pre><code>## # A tibble: 6 x 12
+## # Groups:   cyl, vs [4]
+##     mpg   cyl  disp    hp  drat    wt  qsec    vs    am  gear  carb     x
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1  21       6   160   110  3.9   2.62  16.5     0     1     4     4  20.6
+## 2  21       6   160   110  3.9   2.88  17.0     0     1     4     4  20.6
+## 3  22.8     4   108    93  3.85  2.32  18.6     1     1     4     1  26.7
+## 4  21.4     6   258   110  3.08  3.22  19.4     1     0     3     1  19.1
+## 5  18.7     8   360   175  3.15  3.44  17.0     0     0     3     2  15.1
+## 6  18.1     6   225   105  2.76  3.46  20.2     1     0     3     1  19.1</code></pre>
+<p>Note that here we have a complex piece of code for something quite easy to think about :grimacing:. That would be even worse if you wanted to set the name of the output variable (here <code>x</code>) programmatically or perform operations on multiple columns :scream:.</p>
+<p>The syntax to subset rows (<code>filter</code>) looks like the one to subset columns. For instance, the piece of code that was not working previously to filter species should be written:</p>
+<pre class="r"><code>Species &lt;- &quot;setosa&quot;
+iris %&gt;% dplyr::filter(!!rlang::sym(&quot;Species&quot;) == Species) %&gt;% head()</code></pre>
+<pre><code>##   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
+## 1          5.1         3.5          1.4         0.2  setosa
+## 2          4.9         3.0          1.4         0.2  setosa
+## 3          4.7         3.2          1.3         0.2  setosa
+## 4          4.6         3.1          1.5         0.2  setosa
+## 5          5.0         3.6          1.4         0.2  setosa
+## 6          5.4         3.9          1.7         0.4  setosa</code></pre>
+<p>End of the journey with <code>{dplyr}</code> :triumph:</p>
+</div>
+<div id="datatable" class="section level1">
+<h1><code>data.table</code>: standard evaluation made easy</h1>
+<blockquote>
+<p>With <code>{data.table}</code>, using string variable names is far easier
+:nerd_face:</p>
+</blockquote>
+<p>There exists several ways to use standard evaluation in <code>{data.table}</code>. The first one is based on <code>with</code> and comes from base <code>R</code> syntax:</p>
+<pre class="r"><code>dt &lt;- data.table::as.data.table(mtcars)
+select_cols = c(&quot;mpg&quot;, &quot;cyl&quot;)
+head(dt[ , select_cols, with = FALSE])</code></pre>
+<pre><code>##     mpg cyl
+## 1: 21.0   6
+## 2: 21.0   6
+## 3: 22.8   4
+## 4: 21.4   6
+## 5: 18.7   8
+## 6: 18.1   6</code></pre>
+<p><code>unix terminal</code> users should be familiar with the second one. With <code>..</code> (two dots), we can say to <code>{data.table}</code> to search for names one level higher than where <code>[...]</code> bind us to be. This is in fact the level of the <code>data.table</code> itself:</p>
+<pre class="r"><code>head(dt[ , ..select_cols])</code></pre>
+<pre><code>##     mpg cyl
+## 1: 21.0   6
+## 2: 21.0   6
+## 3: 22.8   4
+## 4: 21.4   6
+## 5: 18.7   8
+## 6: 18.1   6</code></pre>
+<p>However, I clearly prefer, in this context equivalent to a <code>select</code> in <code>{dplyr}</code>, to use <code>.SDcols</code> that understands variable names :grin:. <code>.SDcols</code> controls the behavior of <code>.SD</code> (<em>Subset of Data</em>). This is one of the most powerful features of <code>{data.table}</code>.</p>
+<pre class="r"><code>head(dt[ , .SD, .SDcols = select_cols])</code></pre>
+<pre><code>##     mpg cyl
+## 1: 21.0   6
+## 2: 21.0   6
+## 3: 22.8   4
+## 4: 21.4   6
+## 5: 18.7   8
+## 6: 18.1   6</code></pre>
+<p>There is a final actor in the place that you need to know: the function <code>get</code>. This is a base function that returns the value of a named object. Clearly about evaluation, right ? :wink: Instead of calling <code>dt[,x]</code>, we will call <code>dt[,get("x")]</code>. For instance,</p>
+<pre class="r"><code>head(dt[ , .(&quot;mpg&quot; = get(&quot;mpg&quot;),&quot;cyl&quot; = get(&quot;cyl&quot;))])</code></pre>
+<pre><code>##     mpg cyl
+## 1: 21.0   6
+## 2: 21.0   6
+## 3: 22.8   4
+## 4: 21.4   6
+## 5: 18.7   8
+## 6: 18.1   6</code></pre>
+<p>In the context of selecting subset of columns, I think <code>.SD</code> is the best option.</p>
+<p><code>{data.table}</code>: 1 ; <code>{dplyr}</code>: 0 :soccer:. <code>select</code> was the simplest case in <code>{dplyr}</code>. What happens with computations equivalent to <code>group_by</code>, <code>mutate</code> or <code>filter</code> ?</p>
+<p>Well, to create new columns, we use <code>:=</code> based on modification in place. This is the coolest feature of <code>{data.table}</code> making it faster and less demanding in memory than any other solution based on copy (e.g. <code>dplyr::mutate</code>). If you don’t know the <code>:=</code> verb, I recommend you the <code>{data.table}</code> vignettes.</p>
+<p>:exclamation: Using <code>{data.table}</code> within a function requires an extra-precaution if you don’t want to modify the input dataframe. Because <code>{data.table}</code> is based on modification in place, a function’s environment is not isolated from the global environment. Within a function, you don’t modify a copy of the input data but directly the data in the global environment. To avoid that, we will start all functions with a copy of the input object using <code>data.table::copy</code>.</p>
+<p>The <code>{data.table}</code> version of <code>new_variable</code> takes the following form:</p>
+<pre class="r"><code>new_variable &lt;- function(data, xvar = &quot;mpg&quot;, newname = &quot;x&quot;){
+  datanew &lt;- data.table::copy(data)
+  return(datanew[, c(newname) := get(xvar)])
+}
+head(new_variable(dt, newname = &quot;newvar&quot;))</code></pre>
+<pre><code>##     mpg cyl disp  hp drat    wt  qsec vs am gear carb newvar
+## 1: 21.0   6  160 110 3.90 2.620 16.46  0  1    4    4   21.0
+## 2: 21.0   6  160 110 3.90 2.875 17.02  0  1    4    4   21.0
+## 3: 22.8   4  108  93 3.85 2.320 18.61  1  1    4    1   22.8
+## 4: 21.4   6  258 110 3.08 3.215 19.44  1  0    3    1   21.4
+## 5: 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2   18.7
+## 6: 18.1   6  225 105 2.76 3.460 20.22  1  0    3    1   18.1</code></pre>
+<p>Note that I added an argument to also programmatically set the new variable name, which we did not with <code>{dplyr}</code> :muscle:. The syntax is more concise and easier to understand than in the <code>{dplyr}</code>’s case. By the way, we use <code>c(newname)</code> to set the new column name to force SE and ensure that the new column will not be called <code>newname</code>.</p>
+<blockquote>
+<p>What happens when we want to do that for several variables ?</p>
+</blockquote>
+<p>We get ambitious now! :nerd_face:. This is not that much harder with the help of <code>.SD</code> :</p>
+<pre class="r"><code>new_variables &lt;- function(data, xvars = c(&quot;mpg&quot;,&quot;cyl&quot;),
+                          newnames = c(&quot;x1&quot;,&quot;x2&quot;)){
+  datanew &lt;- data.table::copy(data)
+  return(datanew[, c(newnames) := .SD, .SDcols = xvars])
+}
+head(new_variables(dt))</code></pre>
+<pre><code>##     mpg cyl disp  hp drat    wt  qsec vs am gear carb   x1 x2
+## 1: 21.0   6  160 110 3.90 2.620 16.46  0  1    4    4 21.0  6
+## 2: 21.0   6  160 110 3.90 2.875 17.02  0  1    4    4 21.0  6
+## 3: 22.8   4  108  93 3.85 2.320 18.61  1  1    4    1 22.8  4
+## 4: 21.4   6  258 110 3.08 3.215 19.44  1  0    3    1 21.4  6
+## 5: 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2 18.7  8
+## 6: 18.1   6  225 105 2.76 3.460 20.22  1  0    3    1 18.1  6</code></pre>
+<p>Another point in favor of <code>{data.table}</code> :basketball:.</p>
+<blockquote>
+<p>What about <code>by</code> operations ?</p>
+</blockquote>
+<p><code>by</code> argument natively accepts strings. Thus, if we want to translate the <code>new_variable_group</code> function in <code>{data.table}</code>, we can just add <code>by = grouping_var</code> in column names. Let’s see that with the <code>{data.table}</code> version of new_variable_group :</p>
+<pre class="r"><code>new_variable_group &lt;- function(data, grouping_var = c(&quot;cyl&quot;,&quot;vs&quot;),
+                               xvar = &quot;mpg&quot;, newname = &quot;x&quot;){
+  
+  datanew &lt;- data.table::copy(data)
+  return(datanew[, c(newname) := mean(get(xvar)),
+                 by = grouping_var])
+}
+head(new_variable_group(dt, newname = &quot;newvar&quot;))</code></pre>
+<pre><code>##     mpg cyl disp  hp drat    wt  qsec vs am gear carb   newvar
+## 1: 21.0   6  160 110 3.90 2.620 16.46  0  1    4    4 20.56667
+## 2: 21.0   6  160 110 3.90 2.875 17.02  0  1    4    4 20.56667
+## 3: 22.8   4  108  93 3.85 2.320 18.61  1  1    4    1 26.73000
+## 4: 21.4   6  258 110 3.08 3.215 19.44  1  0    3    1 19.12500
+## 5: 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2 15.10000
+## 6: 18.1   6  225 105 2.76 3.460 20.22  1  0    3    1 19.12500</code></pre>
+<blockquote>
+<p>What if we are even more ambitious and want to do that operation for several columns ?</p>
+</blockquote>
+<p>Once again, <code>.SD</code> will help. This time, we will use <code>lapply</code> function to call <code>mean</code> on several columns:</p>
+<pre class="r"><code>new_variables_group &lt;- function(data, grouping_var = c(&quot;cyl&quot;,&quot;vs&quot;),
+                                xvars = c(&quot;mpg&quot;, &quot;disp&quot;),
+                                newnames = c(&quot;x1&quot;,&quot;x2&quot;)){
+  
+  datanew &lt;- data.table::copy(data)
+  return(
+    datanew[, c(newnames) := lapply(.SD, mean),
+            by = grouping_var,
+            .SDcols = xvars]
+  )
+}
+head(new_variables_group(dt))</code></pre>
+<pre><code>##     mpg cyl disp  hp drat    wt  qsec vs am gear carb       x1     x2
+## 1: 21.0   6  160 110 3.90 2.620 16.46  0  1    4    4 20.56667 155.00
+## 2: 21.0   6  160 110 3.90 2.875 17.02  0  1    4    4 20.56667 155.00
+## 3: 22.8   4  108  93 3.85 2.320 18.61  1  1    4    1 26.73000 103.62
+## 4: 21.4   6  258 110 3.08 3.215 19.44  1  0    3    1 19.12500 204.55
+## 5: 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2 15.10000 353.10
+## 6: 18.1   6  225 105 2.76 3.460 20.22  1  0    3    1 19.12500 204.55</code></pre>
+<p>:tennis: Game, set and match !</p>
+</div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>Using variable names is very useful when you do not want to repeat yourself. With <code>{data.table}</code>, it is very easy to write concise programs that take variable names as input. You should definitely think about it when writing a package :package: !</p>
+</div>
